@@ -98,7 +98,8 @@ spec:
       terminationGracePeriodSeconds: 5
       volumes: 
       - name: knowledge-base
-        emptyDir: {}
+        persistentVolumeClaim: 
+          claimName: knowledge-base-claim
       containers:
       - name: default
         volumeMounts:
