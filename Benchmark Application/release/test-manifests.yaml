@@ -104,7 +104,7 @@ spec:
       - name: default
         volumeMounts:
         - name: knowledge-base # match the volume name 
-          mountPath: /app/knowledge-base
+          mountPath: /usr/src/app/Knowledge_Base
         image: acemarco/smart-hpa:latest
         ports:
         - containerPort: 8080
