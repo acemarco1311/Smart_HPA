@@ -1,7 +1,6 @@
 
 #***************************************************** This file outlines the algorithm for Microservice Manager responsible for emailservice microservice **********************************************
 
-from Microservice_Managers.write_to_knowledge_base import write_content
 import sys
 import os
 import fnmatch
@@ -13,14 +12,8 @@ import time
 import statistics
 from openpyxl import Workbook, load_workbook
 
-
-def command_error_check(command):
-    try:
-        command_output = subprocess.check_output(command.split()).decode('utf-8')
-        return command_output
-    except:
-        return None
-
+sys.path.append('..')
+from subroutine import *
 
 
 #************************************************************************************ Monitor Component **********************************************************************************************
@@ -222,7 +215,7 @@ def emailservice(Test_Time):
 
     #workbook.save('./Knowledge_Base/emailservice.xlsx')
 
-    write_content('./Knowledge_Base/emailservice.txt', Test_Time, cpu_percentage, current_replicas, desired_replica, max_replica, scaling_action)
+    write_content('./Knowledge_Base/emailservice.txt', Test_Time, cpu_percentage, current_replicas, desired_replica)
 
 
 

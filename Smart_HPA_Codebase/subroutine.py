@@ -1,7 +1,7 @@
 import subprocess
 import time
 
-def write_content(filename, test_time, cpu_usage, current_reps, desired_reps, max_reps, scaling_action):
+def write_content(filename, test_time, cpu_usage, current_reps, desired_reps):
     file = open(filename, 'a')
     content = str(test_time) + ',' + str(cpu_usage) + ',' + str(current_reps)+ ',' + str(desired_reps) + '\n'
     file.write(content)
@@ -29,7 +29,7 @@ def command_error_check(command):
     total_retry = 5
     current_retry = 0
     # set timeout on kubectl command
-    command += " --request-timeout 5s"
+    # command += " --request-timeout 5s"
 
     # output from kubectl top pod for unavailable microservice, this might not raise an error (at least on experimental local machine Window)
     kubectl_top_pod_error = "No resources found in default namespace.\n"
@@ -38,7 +38,7 @@ def command_error_check(command):
 
     while current_retry < total_retry:
         try:
-            command_output = subprocess.check_output(command.split(), stderr=subprocess.STDOUT).decode('utf-8')
+            command_output = subprocess.check_output(command.split(), stderr=subprocess.STDOUT, timeout=5).decode('utf-8')
             # handle case when kubectl top pods doesn't raise an error even if the microservice cannot be found
 
             # received "No resources found in default namespace."
@@ -78,6 +78,11 @@ def command_error_check(command):
             # for other error message formats such as: "error: ..."
             else:
                     print(f"Command '{command}' failed with error: ", error_message)
+            command_output = None
+        # use Timeout handling by subprocess module, as localhost has a problem with
+        # kubectl parameter --request-timeout
+        except subprocess.TimeoutExpired as err_timeout:
+            print(f"Command '{command}' failed, exceeded timeout, retrying...")
             command_output = None
         finally:
             current_retry += 1

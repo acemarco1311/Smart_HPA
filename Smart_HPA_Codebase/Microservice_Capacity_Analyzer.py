@@ -17,8 +17,8 @@ from Microservice_Managers.cartservice import *
 from Microservice_Managers.recommendationservice import *
 from Microservice_Managers.shippingservice import *
 from Microservice_Managers.rediscart import *
-from Microservice_Managers.write_to_knowledge_base import add_content
 from Adaptive_Resource_Manager import *
+from subroutine import *
 
 # import grpc for kubernetes heartbeat
 import grpc
@@ -57,16 +57,19 @@ def serve(port):
 
 
 def filter_unavailable_microservice(microservices_data):
-    unavailable_index = []
+    available_microservice_data = []
+    for i in range(len(microservices_data)):
+        if None not in microservices_data[i]:
+            available_microservice_data.append(microservices_data[i])
+    return available_microservice_data
+
+def get_unavailable_microservice(microservices_data):
+    unavailable_microservices_data = []
     for i in range(len(microservices_data)):
         if None in microservices_data[i]:
-            unavailable_index.append(i)
-    available_microservices_data = []
-    for i in range(len(microservices_data)):
-        if i in unavailable_index:
-            continue
-        available_microservices_data.append(microservices_data[i])
-    return available_microservices_data
+            unavailable_microservices_data.append(microservices_data[i])
+    return unavailable_microservices_data
+
 
 
 def run(desire_time):
@@ -100,7 +103,10 @@ def run(desire_time):
         with multiprocessing.Pool(processes=len(functions)) as pool:
             microservices_data = pool.map(run_function, functions)              #Getting data from all microservice managers for Microservice Capacity Analyzer
         # filter unavailable services (containing None in data) before sending to Adaptive Resource Manager
+        unavailable_microservices_data = get_unavailable_microservice(microservices_data)
         microservices_data = filter_unavailable_microservice(microservices_data)
+        print(unavailable_microservices_data)
+        print(microservices_data)
 
 
         ARM_decision = []                 # ARM = Adaptive Resource Manager, ARM current scaling decision and maxR details will be saved here
@@ -148,7 +154,13 @@ def run(desire_time):
                 scaling_decision = microservices_data[i][1]
                 add_content(filepath, row_number, max_reps, scaling_decision)
 
-
+            # write to unavailable data as well
+            for i in range(len(unavailable_microservices_data)):
+                filename = unavailable_microservices_data[i][0]
+                filepath = f'./Knowledge_Base/{filename}.txt'
+                max_reps = unavailable_microservices_data[i][5]
+                scaling_decision = unavailable_microservices_data[i][1]
+                add_content(filepath, row_number, max_reps, scaling_decision)
 
 
                 # ************************************************** Executing Scaling Decisions made by Microservice Managers **********************************************************************
@@ -176,6 +188,14 @@ def run(desire_time):
                 updated_max_reps = ARM_decision[i][3]
                 updated_scaling_decision = ARM_decision[i][1]
                 add_content(filepath, row_number, updated_max_reps, updated_scaling_decision)
+            # write for unavailable microservices
+            for i in range(len(unavailable_microservices_data)):
+                filename = unavailable_microservices_data[i][0]
+                filepath = f'./Knowledge_Base/{filename}.txt'
+                max_reps = unavailable_microservices_data[i][5]
+                scaling_action = unavailable_microservices_data[i][1]
+                add_content(filepath, row_number, max_reps, scaling_action)
+
 
 
                 # ************************************************** Executing ResourceWise Scaling Decisions made by Adaptive Resource Managers **********************************************************************
@@ -208,7 +228,7 @@ if __name__ == '__main__':
     port = "8080"
     server_thread = threading.Thread(target=serve, args=[port,])
     server_thread.start()
-    time.sleep(120)
+    time.sleep(70)
     # run Smart HPA
     smart_hpa_thread = threading.Thread(target=run, args=[desired_time,])
     print("Smart HPA started, running for ", desired_time, " seconds.")

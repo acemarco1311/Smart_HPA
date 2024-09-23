@@ -1,7 +1,6 @@
 
 #***************************************************** This file outlines the algorithm for Microservice Manager responsible for adservice microservice **********************************************
 
-from Microservice_Managers.write_to_knowledge_base import write_content
 import sys
 import os
 import fnmatch
@@ -13,20 +12,8 @@ import time
 import statistics
 from openpyxl import Workbook, load_workbook
 
-
-def command_error_check(command):
-    # set timeout and retry on kubectl command
-    command += " --request-timeout 30s"
-    total_retry = 5
-    current_retry = 0
-    command_output = "" # modified by check_output() if there is no error
-    while len(command_output) == 0 and current_retry < total_retry:
-        try:
-            command_output = subprocess.check_output(command.split()).decode('utf-8')
-            return command_output
-        except:
-
-            return None
+sys.path.append('..')
+from subroutine import *
 
 
 #************************************************************************************ Monitor Component **********************************************************************************************
@@ -228,7 +215,7 @@ def adservice(Test_Time):
 
     #workbook.save('./Knowledge_Base/adservice.xlsx')
 
-    write_content('./Knowledge_Base/adservice.txt', Test_Time, cpu_percentage, current_replicas, desired_replica, max_replica, scaling_action)
+    write_content('./Knowledge_Base/adservice.txt', Test_Time, cpu_percentage, current_replicas, desired_replica)
 
 
 
