@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import calculator_pb2 as calculator__pb2
+import adservice_manager_pb2 as adservice__manager__pb2
 
 GRPC_GENERATED_VERSION = '1.66.1'
 GRPC_VERSION = grpc.__version__
@@ -18,14 +18,14 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in calculator_pb2_grpc.py depends on'
+        + f' but the generated code in adservice_manager_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class CalculatorStub(object):
+class AdserviceManagerStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -34,43 +34,43 @@ class CalculatorStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.Add = channel.unary_unary(
-                '/calculator.Calculator/Add',
-                request_serializer=calculator__pb2.AddRequest.SerializeToString,
-                response_deserializer=calculator__pb2.AddResponse.FromString,
+        self.ExtractMicroserviceData = channel.unary_unary(
+                '/adservice_manager.AdserviceManager/ExtractMicroserviceData',
+                request_serializer=adservice__manager__pb2.MicroserviceDataRequest.SerializeToString,
+                response_deserializer=adservice__manager__pb2.MicroserviceData.FromString,
                 _registered_method=True)
 
 
-class CalculatorServicer(object):
+class AdserviceManagerServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def Add(self, request, context):
+    def ExtractMicroserviceData(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_CalculatorServicer_to_server(servicer, server):
+def add_AdserviceManagerServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Add': grpc.unary_unary_rpc_method_handler(
-                    servicer.Add,
-                    request_deserializer=calculator__pb2.AddRequest.FromString,
-                    response_serializer=calculator__pb2.AddResponse.SerializeToString,
+            'ExtractMicroserviceData': grpc.unary_unary_rpc_method_handler(
+                    servicer.ExtractMicroserviceData,
+                    request_deserializer=adservice__manager__pb2.MicroserviceDataRequest.FromString,
+                    response_serializer=adservice__manager__pb2.MicroserviceData.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'calculator.Calculator', rpc_method_handlers)
+            'adservice_manager.AdserviceManager', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('calculator.Calculator', rpc_method_handlers)
+    server.add_registered_method_handlers('adservice_manager.AdserviceManager', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class Calculator(object):
+class AdserviceManager(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def Add(request,
+    def ExtractMicroserviceData(request,
             target,
             options=(),
             channel_credentials=None,
@@ -83,9 +83,9 @@ class Calculator(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/calculator.Calculator/Add',
-            calculator__pb2.AddRequest.SerializeToString,
-            calculator__pb2.AddResponse.FromString,
+            '/adservice_manager.AdserviceManager/ExtractMicroserviceData',
+            adservice__manager__pb2.MicroserviceDataRequest.SerializeToString,
+            adservice__manager__pb2.MicroserviceData.FromString,
             options,
             channel_credentials,
             insecure,
