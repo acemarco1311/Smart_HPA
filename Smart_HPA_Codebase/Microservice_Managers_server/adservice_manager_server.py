@@ -1,32 +1,21 @@
 import grpc
 from concurrent import futures
-import adservice_manager_pb2
-import adservice_manager_pb2_grpc
-
+import sys
+import os
 import subprocess
 
-def Monitor():
-    microservice_name = "adservice"
-    Available_Replicas = "kubectl.exe get deployment adservice -o=jsonpath='{.status.availableReplicas}'"
-    Available_Replicas = subprocess.check_output(Available_Replicas.split()).decode('utf-8')
-    Available_Replicas = int(Available_Replicas.strip("'"))
-    print(Available_Replicas) # print on server only
-    Replicas_CPU_usage = "kubectl.exe top pods -l app=adservice"
-    Replicas_CPU_usage = subprocess.check_output(Replicas_CPU_usage.split()).decode('utf-8')
-    print(Replicas_CPU_usage) # print on server only
-    return [Available_Replicas, Replicas_CPU_usage]
-
-
-
+sys.path.append('..')
+import Microservice_Managers_grpc.Adservice_Manager.adservice_manager_pb2 as adservice_manager_pb2
+import Microservice_Managers_grpc.Adservice_Manager.adservice_manager_pb2_grpc as adservice_manager_pb2_grpc
 
 class AdserviceManagerServicer(adservice_manager_pb2_grpc.AdserviceManagerServicer):
     def ExtractMicroserviceData(self, request, context):
         microservice_name = "adservice"
         scaling_action = "no scale"
         desired_replicas = 1
-        current_replicas = Monitor()[0]
+        current_replicas = 1
         max_replicas = 5
-        cpu_request = str(Monitor()[1])
+        cpu_request = 10
         return adservice_manager_pb2.MicroserviceData(
             microservice_name = microservice_name,
             scaling_action = scaling_action,
@@ -45,4 +34,3 @@ def serve():
 
 if __name__ == '__main__':
     serve()
-

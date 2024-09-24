@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from grpc_test import adservice_manager_pb2 as grpc__test_dot_adservice__manager__pb2
+from Microservice_Managers_grpc.Adservice_Manager import adservice_manager_pb2 as Microservice__Managers__grpc_dot_Adservice__Manager_dot_adservice__manager__pb2
 
 GRPC_GENERATED_VERSION = '1.66.1'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in grpc_test/adservice_manager_pb2_grpc.py depends on'
+        + f' but the generated code in Microservice_Managers_grpc/Adservice_Manager/adservice_manager_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -36,8 +36,8 @@ class AdserviceManagerStub(object):
         """
         self.ExtractMicroserviceData = channel.unary_unary(
                 '/adservice_manager.AdserviceManager/ExtractMicroserviceData',
-                request_serializer=grpc__test_dot_adservice__manager__pb2.MicroserviceDataRequest.SerializeToString,
-                response_deserializer=grpc__test_dot_adservice__manager__pb2.MicroserviceData.FromString,
+                request_serializer=Microservice__Managers__grpc_dot_Adservice__Manager_dot_adservice__manager__pb2.MicroserviceDataRequest.SerializeToString,
+                response_deserializer=Microservice__Managers__grpc_dot_Adservice__Manager_dot_adservice__manager__pb2.MicroserviceData.FromString,
                 _registered_method=True)
 
 
@@ -55,8 +55,8 @@ def add_AdserviceManagerServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'ExtractMicroserviceData': grpc.unary_unary_rpc_method_handler(
                     servicer.ExtractMicroserviceData,
-                    request_deserializer=grpc__test_dot_adservice__manager__pb2.MicroserviceDataRequest.FromString,
-                    response_serializer=grpc__test_dot_adservice__manager__pb2.MicroserviceData.SerializeToString,
+                    request_deserializer=Microservice__Managers__grpc_dot_Adservice__Manager_dot_adservice__manager__pb2.MicroserviceDataRequest.FromString,
+                    response_serializer=Microservice__Managers__grpc_dot_Adservice__Manager_dot_adservice__manager__pb2.MicroserviceData.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -84,8 +84,8 @@ class AdserviceManager(object):
             request,
             target,
             '/adservice_manager.AdserviceManager/ExtractMicroserviceData',
-            grpc__test_dot_adservice__manager__pb2.MicroserviceDataRequest.SerializeToString,
-            grpc__test_dot_adservice__manager__pb2.MicroserviceData.FromString,
+            Microservice__Managers__grpc_dot_Adservice__Manager_dot_adservice__manager__pb2.MicroserviceDataRequest.SerializeToString,
+            Microservice__Managers__grpc_dot_Adservice__Manager_dot_adservice__manager__pb2.MicroserviceData.FromString,
             options,
             channel_credentials,
             insecure,

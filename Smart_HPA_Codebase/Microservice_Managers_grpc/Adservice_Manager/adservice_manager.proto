@@ -1,0 +1,18 @@
+syntax = "proto3"; 
+
+package adservice_manager; 
+
+service AdserviceManager {
+    rpc ExtractMicroserviceData(MicroserviceDataRequest) returns (MicroserviceData); 
+}
+
+message MicroserviceDataRequest {}
+
+message MicroserviceData {
+    string microservice_name = 1; 
+    string scaling_action = 2; 
+    int32 desired_replicas = 3; 
+    int32 current_replicas = 4; 
+    int32 cpu_request = 5; 
+    int32 max_replicas = 6;
+}
