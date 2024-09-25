@@ -10,13 +10,22 @@ grpcio==1.66.1
     # via
     #   -r requirements.in
     #   grpcio-health-checking
+    #   grpcio-tools
 grpcio-health-checking==1.66.1
+    # via -r requirements.in
+grpcio-tools==1.66.1
     # via -r requirements.in
 numpy==2.0.1
     # via -r requirements.in
 openpyxl==3.1.5
     # via -r requirements.in
 protobuf==5.28.0
-    # via grpcio-health-checking
+    # via
+    #   -r requirements.in
+    #   grpcio-health-checking
+    #   grpcio-tools
 psutil==6.0.0
     # via -r requirements.in
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools

@@ -112,7 +112,6 @@ def run(desire_time):
         ARM_decision = []                 # ARM = Adaptive Resource Manager, ARM current scaling decision and maxR details will be saved here
 
 
-
         # **********************************************************************  Microservice Capacity Analyzer **********************************************************************
 
         for i in range(len(microservices_data)):
@@ -154,6 +153,15 @@ def run(desire_time):
                 scaling_decision = microservices_data[i][1]
                 add_content(filepath, row_number, max_reps, scaling_decision)
 
+                # ************************************************** Executing Scaling Decisions made by Microservice Managers **********************************************************************
+
+                if microservices_data[i][1] != "no scale":
+                    process = multiprocessing.Process(target=Execute, args=(microservices_data[i][0], microservices_data[i][2]))
+                    processes.append(process)
+                    process.start()
+            for process in processes:            # Wait for all processes to finish
+                process.join()
+
             # write to unavailable data as well
             for i in range(len(unavailable_microservices_data)):
                 filename = unavailable_microservices_data[i][0]
@@ -163,14 +171,6 @@ def run(desire_time):
                 add_content(filepath, row_number, max_reps, scaling_decision)
 
 
-                # ************************************************** Executing Scaling Decisions made by Microservice Managers **********************************************************************
-
-                if microservices_data[i][1] != "no scale":
-                    process = multiprocessing.Process(target=Execute, args=(microservices_data[i][0], microservices_data[i][2]))
-                    processes.append(process)
-                    process.start()
-            for process in processes:            # Wait for all processes to finish
-                process.join()
 
 
         # for Resource Constrained Situation, when Adaptive Resource Manager makes changes to max_Replicas and desired replicas
@@ -188,13 +188,6 @@ def run(desire_time):
                 updated_max_reps = ARM_decision[i][3]
                 updated_scaling_decision = ARM_decision[i][1]
                 add_content(filepath, row_number, updated_max_reps, updated_scaling_decision)
-            # write for unavailable microservices
-            for i in range(len(unavailable_microservices_data)):
-                filename = unavailable_microservices_data[i][0]
-                filepath = f'./Knowledge_Base/{filename}.txt'
-                max_reps = unavailable_microservices_data[i][5]
-                scaling_action = unavailable_microservices_data[i][1]
-                add_content(filepath, row_number, max_reps, scaling_action)
 
 
 
@@ -206,6 +199,14 @@ def run(desire_time):
                     process.start()
             for process in processes:            # Wait for all processes to finish
                 process.join()
+
+            # write for unavailable microservices
+            for i in range(len(unavailable_microservices_data)):
+                filename = unavailable_microservices_data[i][0]
+                filepath = f'./Knowledge_Base/{filename}.txt'
+                max_reps = unavailable_microservices_data[i][5]
+                scaling_action = unavailable_microservices_data[i][1]
+                add_content(filepath, row_number, max_reps, scaling_action)
 
         row_number = row_number+1
 

@@ -57,9 +57,9 @@ def Monitor():
         cpu_request = int(cpu_request.strip("'"))
 
 
-    target_cpu = 50
-    max_replica = 5
-    min_replica = 1
+    target_cpu = 50 # user defined cpu limit, cannot get from .yaml file as pod needs to exceed limit resource for triggering scaling
+    max_replica = 5 # user defined max replicas, not being handled by smarthpa yet
+    min_replica = 1 # default
 
     return microservice_name, Desired_Replicas, current_replicas, current_cpu, target_cpu, cpu_request, max_replica, min_replica
 
