@@ -15,4 +15,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . . 
 
 # provides a command and arguments for starting a container, there's only one CMD
-CMD [ "python", "./Microservice_Capacity_Analyzer.py" ]
+# CMD [ "python", "./Microservice_Capacity_Analyzer.py" ]
+CMD [ "./run_smart_hpa.sh" ]

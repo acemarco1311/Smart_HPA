@@ -1,3 +1,4 @@
+#!/bin/bash
 docker build -t smart-hpa .
 docker tag smart-hpa acemarco/smart-hpa
 docker image push acemarco/smart-hpa

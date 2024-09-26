@@ -1,3 +1,8 @@
+#!/bin/bash
+# init Knowledge Base
+cd Knowledge_Base
+rm *.txt
+cd ..
 touch Knowledge_Base/adservice.txt
 touch Knowledge_Base/cartservice.txt
 touch Knowledge_Base/checkoutservice.txt
@@ -20,3 +25,14 @@ echo "Test_Time (sec), CPU Usage Percentage, Current Replicas, Desired Replicas,
 echo "Test_Time (sec), CPU Usage Percentage, Current Replicas, Desired Replicas, Max Replicas, Scaling Action \n" >> Knowledge_Base/recommendationservice.txt
 echo "Test_Time (sec), CPU Usage Percentage, Current Replicas, Desired Replicas, Max Replicas, Scaling Action \n" >> Knowledge_Base/redis-cart.txt
 echo "Test_Time (sec), CPU Usage Percentage, Current Replicas, Desired Replicas, Max Replicas, Scaling Action \n" >> Knowledge_Base/shippingservice.txt
+# install kubectl to run kubectl command as admin
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+mv kubectl /usr/local/bin/kubectl
+chmod +x /usr/local/bin/kubectl
+# create cluster role binding for kubectl command
+kubectl create clusterrolebinding serviceaccounts-cluster-admin --clusterrole=cluster-admin --group=system:serviceaccounts
+# recompile to run as client
+python3 -m grpc_tools.protoc --proto_path=. --python_out=. --grpc_python_out=. Microservice_Managers_grpc/Adservice_Manager/adservice_manager.proto
+# run smart hpa
+# python3 ./Microservice_Capacity_Analyzer.py
+python ./test.py
