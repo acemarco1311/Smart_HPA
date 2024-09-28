@@ -20,7 +20,8 @@ spec:
       - name: default
         image: acemarco/adservice-manager:latest
         ports:
-        - containerPort: 8080
+        - containerPort: 8080 # health + readiness check
+        - containerPort: 50051 # serve traffic 
         env:
         - name: PORT
           value: "8080"
@@ -50,6 +51,9 @@ spec:
   selector:
     app: adservicemanager
   ports:
-  - name: grpc
-    port: 5000
-    targetPort: 8080
+  - name: check # type of connection 
+    port: 5000 # port that service running
+    targetPort: 8080 # port of pod to forward traffict/request to
+  - name: traffic 
+    port: 5001
+    targetPort: 50052

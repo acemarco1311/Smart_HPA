@@ -7,7 +7,6 @@ def write_content(filename, test_time, cpu_usage, current_reps, desired_reps):
     file.write(content)
     file.close()
 
-
 def add_content(filename, row_number, max_reps, scaling_action):
     with open(filename, 'r') as file:
         data = file.readlines()
@@ -23,7 +22,6 @@ def add_content(filename, row_number, max_reps, scaling_action):
     with open(filename, 'w') as file:
         file.writelines(data)
 
-
 def command_error_check(command):
     # set retry
     total_retry = 5
@@ -36,8 +34,8 @@ def command_error_check(command):
     # output when the microservice is still initializing, this might not raise an error
     microservice_initializing_error = "''"
 
-    command_output = ""
     while current_retry < total_retry:
+        command_output = ""
         try:
             command_output = subprocess.check_output(command.split(), stderr=subprocess.STDOUT, timeout=5).decode('utf-8')
             # handle case when kubectl top pods doesn't raise an error even if the microservice cannot be found
@@ -94,9 +92,3 @@ def command_error_check(command):
             elif command_output is None and current_retry >= total_retry:
                 print(f"Command '{command}' cannot be completed after retrying.")
             return command_output
-
-
-
-# command = "kubectl.exe get deployment adservice -o=jsonpath='{.status.availableReplicas}'"
-# output_command = command_error_check(command)
-# print(output_command)

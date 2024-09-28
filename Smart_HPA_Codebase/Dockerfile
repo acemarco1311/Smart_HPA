@@ -14,6 +14,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the source code to the working directory
 COPY . . 
 
+# Avoid print statements being buffered and 
+# not captured by kubectl logs 
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONIOENCODING=UTF-8
+
 # provides a command and arguments for starting a container, there's only one CMD
 # CMD [ "python", "./Microservice_Capacity_Analyzer.py" ]
 CMD [ "./run_smart_hpa.sh" ]

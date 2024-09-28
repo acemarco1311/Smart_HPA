@@ -17,7 +17,7 @@ def serve_health(port):
     server.wait_for_termination()
 
 def getSome():
-    with grpc.insecure_channel('10.1.6.91:50051') as channel:
+    with grpc.insecure_channel('10.101.130.237:5001') as channel:
         stub = adservice_manager_pb2_grpc.AdserviceManagerStub(channel)
         response = stub.ExtractMicroserviceData(adservice_manager_pb2.MicroserviceDataRequest())
         adservice_data = [
@@ -28,14 +28,17 @@ def getSome():
             response.cpu_request,
             response.max_replicas
         ]
-        print(adservice_data)
         return adservice_data
 if __name__ == '__main__':
+    print("Started main")
     # run heartbeat
+    print("Started heartbeat server")
     port = "8080"
     health_server = threading.Thread(target=serve_health, args=[port, ])
     health_server.start()
+    print("Started request")
     for i in range(10):
-        getSome()
+        print(getSome())
+    health_server.join()
 
 
