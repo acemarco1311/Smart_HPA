@@ -22,6 +22,16 @@ def add_content(filename, row_number, max_reps, scaling_action):
     with open(filename, 'w') as file:
         file.writelines(data)
 
+# 1: handle errors from kubectl server error using subprocess.CalledProcessError
+# 2: handle timeout either as kubectl server error (putting --request-timeout, having problem if deployed localling)
+# or set timeout on subprocess.check_output() and handle subprocess.TimeoutError
+# 3: some other weird errors
+# 3.1: kubectl top pod of an unavailable pods return a string "No resources found" not raising an error
+# ONLY LOCALLY, need to test on kubernetes cluster
+# 3.2: initializing pod return an empty string or ''
+# 3.3: other weird errors not raising an error.
+# 4: catch generic Exception for unhandled error and print error message
+
 def command_error_check(command):
     # set retry
     total_retry = 5
