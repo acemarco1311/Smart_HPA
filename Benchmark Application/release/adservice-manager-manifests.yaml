@@ -21,7 +21,7 @@ spec:
         image: acemarco/adservice-manager:latest
         ports:
         - containerPort: 8080 # health + readiness check
-        - containerPort: 50051 # serve traffic 
+        - containerPort: 50052 # serve traffic 
         env:
         - name: PORT
           value: "8080"
@@ -50,6 +50,596 @@ spec:
   type: ClusterIP
   selector:
     app: adservicemanager
+  ports:
+  - name: check # type of connection 
+    port: 5000 # port that service running
+    targetPort: 8080 # port of pod to forward traffict/request to
+  - name: traffic 
+    port: 5001
+    targetPort: 50052
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartservicemanager
+spec:
+  selector:
+    matchLabels:
+      app: cartservicemanager
+  template:
+    metadata:
+      labels:
+        app: cartservicemanager
+    spec:
+      #serviceAccountName: default
+      serviceAccount: god
+      serviceAccountName: god
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: default
+        image: acemarco/cartservice-manager:latest
+        ports:
+        - containerPort: 8080 # health + readiness check
+        - containerPort: 50052 # serve traffic 
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DISABLE_PROFILER
+          value: "1"
+        readinessProbe:
+          periodSeconds: 5
+          initialDelaySeconds: 20
+          grpc:
+            port: 8080
+        livenessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          grpc:
+            port: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 150Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cartservicemanager
+spec:
+  type: ClusterIP
+  selector:
+    app: cartservicemanager
+  ports:
+  - name: check # type of connection 
+    port: 5000 # port that service running
+    targetPort: 8080 # port of pod to forward traffict/request to
+  - name: traffic 
+    port: 5001
+    targetPort: 50052
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkoutservicemanager
+spec:
+  selector:
+    matchLabels:
+      app: checkoutservicemanager
+  template:
+    metadata:
+      labels:
+        app: checkoutservicemanager
+    spec:
+      #serviceAccountName: default
+      serviceAccount: god
+      serviceAccountName: god
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: default
+        image: acemarco/checkoutservice-manager:latest
+        ports:
+        - containerPort: 8080 # health + readiness check
+        - containerPort: 50052 # serve traffic 
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DISABLE_PROFILER
+          value: "1"
+        readinessProbe:
+          periodSeconds: 5
+          initialDelaySeconds: 20
+          grpc:
+            port: 8080
+        livenessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          grpc:
+            port: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 150Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkoutservicemanager
+spec:
+  type: ClusterIP
+  selector:
+    app: checkoutservicemanager
+  ports:
+  - name: check # type of connection 
+    port: 5000 # port that service running
+    targetPort: 8080 # port of pod to forward traffict/request to
+  - name: traffic 
+    port: 5001
+    targetPort: 50052
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: currencyservicemanager
+spec:
+  selector:
+    matchLabels:
+      app: currencyservicemanager
+  template:
+    metadata:
+      labels:
+        app: currencyservicemanager
+    spec:
+      #serviceAccountName: default
+      serviceAccount: god
+      serviceAccountName: god
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: default
+        image: acemarco/currencyservice-manager:latest
+        ports:
+        - containerPort: 8080 # health + readiness check
+        - containerPort: 50052 # serve traffic 
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DISABLE_PROFILER
+          value: "1"
+        readinessProbe:
+          periodSeconds: 5
+          initialDelaySeconds: 20
+          grpc:
+            port: 8080
+        livenessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          grpc:
+            port: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 150Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: currencyservicemanager
+spec:
+  type: ClusterIP
+  selector:
+    app: currencyservicemanager
+  ports:
+  - name: check # type of connection 
+    port: 5000 # port that service running
+    targetPort: 8080 # port of pod to forward traffict/request to
+  - name: traffic 
+    port: 5001
+    targetPort: 50052
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emailservicemanager
+spec:
+  selector:
+    matchLabels:
+      app: emailservicemanager
+  template:
+    metadata:
+      labels:
+        app: emailservicemanager
+    spec:
+      #serviceAccountName: default
+      serviceAccount: god
+      serviceAccountName: god
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: default
+        image: acemarco/emailservice-manager:latest
+        ports:
+        - containerPort: 8080 # health + readiness check
+        - containerPort: 50052 # serve traffic 
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DISABLE_PROFILER
+          value: "1"
+        readinessProbe:
+          periodSeconds: 5
+          initialDelaySeconds: 20
+          grpc:
+            port: 8080
+        livenessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          grpc:
+            port: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 150Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: emailservicemanager
+spec:
+  type: ClusterIP
+  selector:
+    app: emailservicemanager
+  ports:
+  - name: check # type of connection 
+    port: 5000 # port that service running
+    targetPort: 8080 # port of pod to forward traffict/request to
+  - name: traffic 
+    port: 5001
+    targetPort: 50052
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontendmanager
+spec:
+  selector:
+    matchLabels:
+      app: frontendmanager
+  template:
+    metadata:
+      labels:
+        app: frontendmanager
+    spec:
+      #serviceAccountName: default
+      serviceAccount: god
+      serviceAccountName: god
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: default
+        image: acemarco/frontend-manager:latest
+        ports:
+        - containerPort: 8080 # health + readiness check
+        - containerPort: 50052 # serve traffic 
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DISABLE_PROFILER
+          value: "1"
+        readinessProbe:
+          periodSeconds: 5
+          initialDelaySeconds: 20
+          grpc:
+            port: 8080
+        livenessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          grpc:
+            port: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 150Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontendmanager
+spec:
+  type: ClusterIP
+  selector:
+    app: frontendmanager
+  ports:
+  - name: check # type of connection 
+    port: 5000 # port that service running
+    targetPort: 8080 # port of pod to forward traffict/request to
+  - name: traffic 
+    port: 5001
+    targetPort: 50052
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paymentservicemanager
+spec:
+  selector:
+    matchLabels:
+      app: paymentservicemanager
+  template:
+    metadata:
+      labels:
+        app: paymentservicemanager
+    spec:
+      #serviceAccountName: default
+      serviceAccount: god
+      serviceAccountName: god
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: default
+        image: acemarco/paymentservice-manager:latest
+        ports:
+        - containerPort: 8080 # health + readiness check
+        - containerPort: 50052 # serve traffic 
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DISABLE_PROFILER
+          value: "1"
+        readinessProbe:
+          periodSeconds: 5
+          initialDelaySeconds: 20
+          grpc:
+            port: 8080
+        livenessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          grpc:
+            port: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 150Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paymentservicemanager
+spec:
+  type: ClusterIP
+  selector:
+    app: paymentservicemanager
+  ports:
+  - name: check # type of connection 
+    port: 5000 # port that service running
+    targetPort: 8080 # port of pod to forward traffict/request to
+  - name: traffic 
+    port: 5001
+    targetPort: 50052
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: productcatalogservicemanager
+spec:
+  selector:
+    matchLabels:
+      app: productcatalogservicemanager
+  template:
+    metadata:
+      labels:
+        app: productcatalogservicemanager
+    spec:
+      #serviceAccountName: default
+      serviceAccount: god
+      serviceAccountName: god
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: default
+        image: acemarco/productcatalogservice-manager:latest
+        ports:
+        - containerPort: 8080 # health + readiness check
+        - containerPort: 50052 # serve traffic 
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DISABLE_PROFILER
+          value: "1"
+        readinessProbe:
+          periodSeconds: 5
+          initialDelaySeconds: 20
+          grpc:
+            port: 8080
+        livenessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          grpc:
+            port: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 150Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: productcatalogservicemanager
+spec:
+  type: ClusterIP
+  selector:
+    app: productcatalogservicemanager
+  ports:
+  - name: check # type of connection 
+    port: 5000 # port that service running
+    targetPort: 8080 # port of pod to forward traffict/request to
+  - name: traffic 
+    port: 5001
+    targetPort: 50052
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendationservicemanager
+spec:
+  selector:
+    matchLabels:
+      app: recommendationservicemanager
+  template:
+    metadata:
+      labels:
+        app: recommendationservicemanager
+    spec:
+      #serviceAccountName: default
+      serviceAccount: god
+      serviceAccountName: god
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: default
+        image: acemarco/recommendationservice-manager:latest
+        ports:
+        - containerPort: 8080 # health + readiness check
+        - containerPort: 50052 # serve traffic 
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DISABLE_PROFILER
+          value: "1"
+        readinessProbe:
+          periodSeconds: 5
+          initialDelaySeconds: 20
+          grpc:
+            port: 8080
+        livenessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          grpc:
+            port: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 150Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendationservicemanager
+spec:
+  type: ClusterIP
+  selector:
+    app: recommendationservicemanager
+  ports:
+  - name: check # type of connection 
+    port: 5000 # port that service running
+    targetPort: 8080 # port of pod to forward traffict/request to
+  - name: traffic 
+    port: 5001
+    targetPort: 50052
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rediscartmanager
+spec:
+  selector:
+    matchLabels:
+      app: rediscartmanager
+  template:
+    metadata:
+      labels:
+        app: rediscartmanager
+    spec:
+      #serviceAccountName: default
+      serviceAccount: god
+      serviceAccountName: god
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: default
+        image: acemarco/rediscart-manager:latest
+        ports:
+        - containerPort: 8080 # health + readiness check
+        - containerPort: 50052 # serve traffic 
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DISABLE_PROFILER
+          value: "1"
+        readinessProbe:
+          periodSeconds: 5
+          initialDelaySeconds: 20
+          grpc:
+            port: 8080
+        livenessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          grpc:
+            port: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 150Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rediscartmanager
+spec:
+  type: ClusterIP
+  selector:
+    app: rediscartmanager
+  ports:
+  - name: check # type of connection 
+    port: 5000 # port that service running
+    targetPort: 8080 # port of pod to forward traffict/request to
+  - name: traffic 
+    port: 5001
+    targetPort: 50052
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shippingservicemanager
+spec:
+  selector:
+    matchLabels:
+      app: shippingservicemanager
+  template:
+    metadata:
+      labels:
+        app: shippingservicemanager
+    spec:
+      #serviceAccountName: default
+      serviceAccount: god
+      serviceAccountName: god
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: default
+        image: acemarco/shippingservice-manager:latest
+        ports:
+        - containerPort: 8080 # health + readiness check
+        - containerPort: 50052 # serve traffic 
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DISABLE_PROFILER
+          value: "1"
+        readinessProbe:
+          periodSeconds: 5
+          initialDelaySeconds: 20
+          grpc:
+            port: 8080
+        livenessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          grpc:
+            port: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 150Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shippingservicemanager
+spec:
+  type: ClusterIP
+  selector:
+    app: shippingservicemanager
   ports:
   - name: check # type of connection 
     port: 5000 # port that service running

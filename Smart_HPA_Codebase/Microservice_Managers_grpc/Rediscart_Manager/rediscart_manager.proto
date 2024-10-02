@@ -1,8 +1,8 @@
 syntax = "proto3"; 
 
-package adservice_manager; 
+package rediscart_manager; 
 
-service AdserviceManager {
+service RediscartManager {
     rpc ExtractMicroserviceData(MicroserviceDataRequest) returns (MicroserviceData); 
 }
 
@@ -15,5 +15,5 @@ message MicroserviceData {
     int32 current_replicas = 4; 
     int32 cpu_request = 5; 
     int32 max_replicas = 6;
-    double cpu_percentage = 7; 
+    double cpu_percentage = 7;
 }

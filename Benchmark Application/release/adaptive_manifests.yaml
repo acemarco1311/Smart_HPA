@@ -1,0 +1,59 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adaptiveresourcemanager
+spec:
+  selector:
+    matchLabels:
+      app: adaptiveresourcemanager
+  template:
+    metadata:
+      labels:
+        app: adaptiveresourcemanager
+    spec:
+      #serviceAccountName: default
+      serviceAccount: god
+      serviceAccountName: god
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: default
+        image: acemarco/adaptive-resource-manager:latest
+        ports:
+        - containerPort: 8080 # health + readiness check
+        - containerPort: 50052 # serve traffic 
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DISABLE_PROFILER
+          value: "1"
+        readinessProbe:
+          periodSeconds: 5
+          initialDelaySeconds: 20
+          grpc:
+            port: 8080
+        livenessProbe:
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          grpc:
+            port: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 150Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adaptiveresourcemanager
+spec:
+  type: ClusterIP
+  selector:
+    app: adaptiveresourcemanager
+  ports:
+  - name: check # type of connection 
+    port: 5000 # port that service running
+    targetPort: 8080 # port of pod to forward traffict/request to
+  - name: traffic 
+    port: 5001
+    targetPort: 50052

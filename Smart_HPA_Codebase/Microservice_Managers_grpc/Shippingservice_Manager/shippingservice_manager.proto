@@ -1,8 +1,8 @@
 syntax = "proto3"; 
 
-package adservice_manager; 
+package shippingservice_manager; 
 
-service AdserviceManager {
+service ShippingserviceManager {
     rpc ExtractMicroserviceData(MicroserviceDataRequest) returns (MicroserviceData); 
 }
 

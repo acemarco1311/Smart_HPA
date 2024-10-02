@@ -11,20 +11,20 @@ import math
 import statistics
 import threading
 
-import adservice_manager_pb2
-import adservice_manager_pb2_grpc
+import rediscart_manager_pb2
+import rediscart_manager_pb2_grpc
 import subroutine
 
 
 def Monitor():
-    microservice_name = "adservice"
+    microservice_name = "redis-cart"
     # change kubectl to kubectl.exe if running locally
-    Available_Replicas = "kubectl get deployment adservice -o=jsonpath='{.status.availableReplicas}'"
+    Available_Replicas = "kubectl get deployment redis-cart -o=jsonpath='{.status.availableReplicas}'"
     Available_Replicas = subroutine.command_error_check(Available_Replicas)
     if Available_Replicas is not None:
         Available_Replicas= int(Available_Replicas.strip("'"))
 
-    Replicas_CPU_usage = "kubectl top pods -l app=adservice"
+    Replicas_CPU_usage = "kubectl top pods -l app=redis-cart"
     Replicas_CPU_usage = subroutine.command_error_check(Replicas_CPU_usage)
 
     Operational_Replicas = None
@@ -49,13 +49,13 @@ def Monitor():
         current_cpu = math.ceil(statistics.mean(cpu_add))
 
 
-    Desired_Replicas = "kubectl get deployment adservice -o=jsonpath='{.spec.replicas}'"
+    Desired_Replicas = "kubectl get deployment redis-cart -o=jsonpath='{.spec.replicas}'"
     Desired_Replicas = subroutine.command_error_check(Desired_Replicas)
     if Desired_Replicas is not None:
         Desired_Replicas = int(Desired_Replicas.strip("'"))
 
 
-    cpu_request = "kubectl get deployment adservice -o=jsonpath='{.spec.template.spec.containers[0].resources.requests.cpu}'"
+    cpu_request = "kubectl get deployment redis-cart -o=jsonpath='{.spec.template.spec.containers[0].resources.requests.cpu}'"
     cpu_request = subroutine.command_error_check(cpu_request)
     if cpu_request is not None:
         cpu_request = cpu_request[:-2]
@@ -89,33 +89,33 @@ def Analyse (Desired_Replicas, current_replicas, current_cpu, target_cpu, cpu_re
 
 
 
-class AdserviceManagerServicer(adservice_manager_pb2_grpc.AdserviceManagerServicer):
+class RediscartManagerServicer(rediscart_manager_pb2_grpc.RediscartManagerServicer):
     def ExtractMicroserviceData(self, request, context):
         microservice_name, P_Desired_Replicas, current_replicas, current_cpu, target_cpu, cpu_request, max_replica, min_replica = Monitor()
         cpu_percentage, scaling_action, desired_replica = Analyse(P_Desired_Replicas, current_replicas, current_cpu, target_cpu, cpu_request, min_replica)
-        adservice_data = [microservice_name, scaling_action, desired_replica, current_replicas, cpu_request, max_replica, cpu_percentage]
+        rediscart_data = [microservice_name, scaling_action, desired_replica, current_replicas, cpu_request, max_replica, cpu_percentage]
 
         # example data
-        # adservice_data = ["adservice", "no scale", 1, 1, 50, 5]
+        # rediscart_data = ["rediscart", "no scale", 1, 1, 50, 5]
         # if error
-        # adservice_data = ["adservice", "ERROR", 0, 0, 0, 0]
+        # rediscart_data = ["rediscart", "ERROR", 0, 0, 0, 0]
 
-        return adservice_manager_pb2.MicroserviceData(
-            microservice_name = adservice_data[0],
-            scaling_action = adservice_data[1],
-            desired_replicas = adservice_data[2],
-            current_replicas = adservice_data[3],
-            cpu_request = adservice_data[4],
-            max_replicas = adservice_data[5],
-            cpu_percentage = adservice_data[6]
+        return rediscart_manager_pb2.MicroserviceData(
+            microservice_name = rediscart_data[0],
+            scaling_action = rediscart_data[1],
+            desired_replicas = rediscart_data[2],
+            current_replicas = rediscart_data[3],
+            cpu_request = rediscart_data[4],
+            max_replicas = rediscart_data[5],
+            cpu_percentage = rediscart_data[6]
         )
 
 def serve(port):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    adservice_manager_pb2_grpc.add_AdserviceManagerServicer_to_server(AdserviceManagerServicer(), server)
+    rediscart_manager_pb2_grpc.add_RediscartManagerServicer_to_server(RediscartManagerServicer(), server)
     server.add_insecure_port("[::]:" + port)
     server.start()
-    print("Adservice Manager server started, listening on port " + port)
+    print("rediscart Manager server started, listening on port " + port)
     server.wait_for_termination()
 
 def serve_health(port):
@@ -123,7 +123,7 @@ def serve_health(port):
     health_pb2_grpc.add_HealthServicer_to_server(health.HealthServicer(), server)
     server.add_insecure_port("[::]:" + port)
     server.start()
-    print("Heartbeat server for Adservice Manager started, listening on port " + port)
+    print("Heartbeat server for rediscart Manager started, listening on port " + port)
     server.wait_for_termination()
 
 
