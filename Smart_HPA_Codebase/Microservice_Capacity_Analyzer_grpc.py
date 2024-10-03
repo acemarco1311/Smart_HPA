@@ -30,127 +30,206 @@ def serve_health(port):
 # to connect to microservice manager via its service ip and port
 def get_service_endpoint(microservice_name):
     # alternatively, search service name by using microservice name as selector, config dependent
+    service_endpoint = None
     service_name = microservice_name + "manager"
     # alternatively, search for port using port name "traffic", config dependent
     default_port = "5001"
     service_cluster_ip = "kubectl get service "
     service_cluster_ip += service_name
     service_cluster_ip += " -o=jsonpath='{.spec.clusterIP}'"
+    # retry inculded in subroutine.command_error_check()
     service_cluster_ip = subroutine.command_error_check(service_cluster_ip)
-    service_cluster_ip = service_cluster_ip.strip("'")
-    service_endpoint = service_cluster_ip + ":" + default_port
+    if service_cluster_ip is not None:
+        service_cluster_ip = service_cluster_ip.strip("'")
+        service_endpoint = service_cluster_ip + ":" + default_port
+    else:
+        print("Cannot get service endpoint for microservice ", microservice_name)
     return service_endpoint
 
+# connect to a microservice manager using the microservice's name
+# input: str microservice name
+# output: stub, channel of the connection
 def connect_to_microservice_manager(microservice_name):
-    # service_endpoint example: 10.1.1.1:5001
-    service_endpoint = get_service_endpoint(microservice_name)
-    # proto_module_name = "Microservice_Managers_grpc.Adservice_Manager. adservice_manager_pb2_grpc"
-    file_name = microservice_name + "_" + "manager_pb2_grpc"
-    module_name = "Microservice_Managers_grpc." + microservice_name.capitalize() + "_Manager."
-    proto_module_name = module_name + file_name
-    # service_stub_name = AdserviceManagerStub
-    service_stub_name = microservice_name.capitalize() + "ManagerStub"
-    try:
-        # import module named adservice_manager_pb2_grpc
-        grpc_module = importlib.import_module(proto_module_name)
-        # get adservice_manager_pb2_grpc.AdserviceManagerStub
-        service_stub_class = getattr(grpc_module, service_stub_name)
-        channel = grpc.insecure_channel(service_endpoint)
-        # run adservice_manager_pb2_grpc.AdserviceManagerStub(channel) to get stub
-        stub = service_stub_class(channel)
-        return [microservice_name, channel, stub]
-    except Exception as e:
-        print("An error happened when connecting and retrieving stub from server.")
-        print(e)
-        return None
+    current_retry = 0
+    max_retry = 3
+    while (current_retry < max_retry):
+        try:
+            # service_endpoint example: 10.1.1.1:5001
+            service_endpoint = get_service_endpoint(microservice_name)
+            if service_endpoint is None:
+                raise Exception("Cannot get service endpoint")
+            # proto_module_name = "Microservice_Managers_grpc.Adservice_Manager. adservice_manager_pb2_grpc"
+            file_name = microservice_name + "_" + "manager_pb2_grpc"
+            module_name = "Microservice_Managers_grpc." + microservice_name.capitalize() + "_Manager."
+            proto_module_name = module_name + file_name
+            # service_stub_name = AdserviceManagerStub
+            service_stub_name = microservice_name.capitalize() + "ManagerStub"
+            # import module named adservice_manager_pb2_grpc
+            grpc_module = importlib.import_module(proto_module_name)
+            # get adservice_manager_pb2_grpc.AdserviceManagerStub
+            service_stub_class = getattr(grpc_module, service_stub_name)
+            channel = grpc.insecure_channel(service_endpoint)
+            # run adservice_manager_pb2_grpc.AdserviceManagerStub(channel) to get stub
+            stub = service_stub_class(channel)
+            return [microservice_name, channel, stub]
+        except Exception as e:
+            print("An error happened when connecting and retrieving stub from server.")
+            print(e)
+            current_retry += 1
+            if current_retry >= max_retry:
+                print("Cannot make a connection to microservice manager ", microservice_name)
+                return [microservice_name, None, None]
+            else:
+                print("Retry to connect to microservice manager ", microservice_name)
+
+
 
 
 def connect_to_adaptive_resource_manager():
-    service_endpoint = get_service_endpoint("adaptiveresource")
-    proto_module_name = "Adaptive_Resource_Manager.adaptive_resource_manager_pb2_grpc"
-    service_stub_name = "AdaptiveResourceManagerStub"
-    try:
-        # import module named adaptive_resource_manager_pb2_grpc
-        grpc_module = importlib.import_module(proto_module_name)
-        #  get adaptive_resource_manager.AdaptiveResourceManagerStub
-        service_stub_class = getattr(grpc_module, service_stub_name)
-        channel = grpc.insecure_channel(service_endpoint)
-        # run adaptive_resource_manager_pb2_grpc.AdaptiveResourceManagerStub(channel)
-        stub = service_stub_class(channel)
-        return stub, channel
-    except Exception as e:
-        print("An error happened when connecting to Adaptive Resource Manager.")
-        print(e)
-        return None, None
+    current_retry = 0
+    max_retry = 3
+    while current_retry < max_retry:
+        service_endpoint = get_service_endpoint("adaptiveresource")
+        if service_endpoint is None:
+            current_retry += 1
+            continue
+        proto_module_name = "Adaptive_Resource_Manager.adaptive_resource_manager_pb2_grpc"
+        service_stub_name = "AdaptiveResourceManagerStub"
+        try:
+            # import module named adaptive_resource_manager_pb2_grpc
+            grpc_module = importlib.import_module(proto_module_name)
+            #  get adaptive_resource_manager.AdaptiveResourceManagerStub
+            service_stub_class = getattr(grpc_module, service_stub_name)
+            channel = grpc.insecure_channel(service_endpoint)
+            # run adaptive_resource_manager_pb2_grpc.AdaptiveResourceManagerStub(channel)
+            stub = service_stub_class(channel)
+            return stub, channel
+        except Exception as e:
+            print("An error happened when connecting to Adaptive Resource Manager.")
+            print(e)
+            current_retry += 1
+            if current_retry >= max_retry:
+                print("Cannot make a connection to Adaptive Resource Manager.")
+                return None, None
+            else:
+                print("Retrying to connect to Adaptive Resource Manager.")
 
 
+def filter_microservice_data(response):
+    has_error = False
+    if len(response.microservice_name) == 0 or len(response.scaling_action) == 0:
+        has_error = True
+    if response.microservice_name == "''" or response.scaling_action == "''" or response.scaling_action == "ERROR":
+        has_error = True
+    if response.desired_replicas == 0 or response.current_replicas == 0 or response.cpu_request == 0 or response.max_replicas == 0 or response.cpu_percentage == 0:
+        has_error = True
+    if has_error == True:
+        return [response.microservice_name, None, None, None, None, None, None]
+    microservice_data = [
+        response.microservice_name,
+        response.scaling_action,
+        response.desired_replicas,
+        response.current_replicas,
+        response.cpu_request,
+        response.max_replicas,
+        response.cpu_percentage
+    ]
+    return microservice_data
 
 # connect to microservice manager using microservice name
 # and get the microservice resource data for scaling
+# input: microservice name and stub of connection
+# output: list of microservice resource data
 def get_microservice_data(microservice_name, stub):
     module_name = "Microservice_Managers_grpc."+ microservice_name.capitalize() + "_Manager."
     file_name = microservice_name + "_" + "manager_pb2"
     proto_module_name = module_name + file_name
-    try:
-        # import module named adservice_manager_pb2 for creating request
-        grpc_module = importlib.import_module(proto_module_name)
-        # get adservice_manager_pb2.MicroserviceDataRequest
-        request_form = getattr(grpc_module, "MicroserviceDataRequest")
-        # run adservice_manager_pb2.MicroserviceDataRequest() to make request
-        request = request_form()
-        # get response
-        response_form = getattr(stub, "ExtractMicroserviceData")
-        response = response_form(request)
-        microservice_data = [
-            response.microservice_name,
-            response.scaling_action,
-            response.desired_replicas,
-            response.current_replicas,
-            response.cpu_request,
-            response.max_replicas,
-            response.cpu_percentage
-        ]
-        return microservice_data
-    except Exception as e:
-        print(e)
-        return None
+
+    current_retry = 0
+    max_retry = 3
+    while current_retry < max_retry:
+        try:
+            # import module named adservice_manager_pb2 for creating request
+            grpc_module = importlib.import_module(proto_module_name)
+            # get adservice_manager_pb2.MicroserviceDataRequest
+            request_form = getattr(grpc_module, "MicroserviceDataRequest")
+            # run adservice_manager_pb2.MicroserviceDataRequest() to make request
+            request = request_form()
+            # get response
+            response_form = getattr(stub, "ExtractMicroserviceData")
+            response = response_form(request, timeout=5) # set timeout on gRPC function call
+            microservice_data = filter_microservice_data(response)
+            if None in microservice_data:
+                raise ValueError("Invalid response from microservice manager server ", microservice_name)
+            return microservice_data
+        except ValueError as ve:
+            current_retry += 1
+            if current_retry >= max_retry:
+                return microservice_data
+            else:
+                print("Retrying")
+        except grpc.RpcError as re:
+            if re.code() == grpc.StatusCode.UNAVAILABLE:
+                print(f"Microservice Manager {microservice_name} is unavailable during data retrieval. ")
+                remove_from_connection(microservice_name)
+                return [microservice_name, None, None, None, None, None, None]
+
+        except Exception as e:
+            print("An error occurred in getting data from ", microservice_name)
+            print(e)
+            current_retry += 1
+            if current_retry >= max_retry:
+                print("Cannot get data from ", microservice_name)
+                return microservice_data
+            else:
+                print("Retrying to get data from ", microservice_name)
+
 
 def get_resource_exchange(stub, microservice_data):
     proto_module_name = "Adaptive_Resource_Manager.adaptive_resource_manager_pb2"
-    try:
-        # import module adaptive_resource_manager_pb2
-        grpc_module = importlib.import_module(proto_module_name)
-        # get adaptive_resource_manager_pb2.ResourceExchangeRequest() to make request
-        request_form = getattr(grpc_module, "ResourceExchangeRequest")
-        request_list = []
-        for microservice in microservice_data:
-            form = getattr(grpc_module, "MicroserviceData")
-            request_list.append(
-                form(
-                    microservice_name = microservice[0],
-                    scaling_action = microservice[1],
-                    desired_replicas = microservice[2],
-                    current_replicas = microservice[3],
-                    cpu_request = microservice[4],
-                    max_replicas = microservice[5],
-                    cpu_percentage = microservice[6]
+    current_retry = 0
+    max_retry = 3
+    while current_retry < max_retry:
+        try:
+            # import module adaptive_resource_manager_pb2
+            grpc_module = importlib.import_module(proto_module_name)
+            # get adaptive_resource_manager_pb2.ResourceExchangeRequest() to make request
+            request_form = getattr(grpc_module, "ResourceExchangeRequest")
+            request_list = []
+            for microservice in microservice_data:
+                form = getattr(grpc_module, "MicroserviceData")
+                request_list.append(
+                    form(
+                        microservice_name = microservice[0],
+                        scaling_action = microservice[1],
+                        desired_replicas = microservice[2],
+                        current_replicas = microservice[3],
+                        cpu_request = microservice[4],
+                        max_replicas = microservice[5],
+                        cpu_percentage = microservice[6]
+                    )
                 )
-            )
-        request = request_form()
-        for i in range(len(request_list)):
-            request.data.append(request_list[i])
-        # get response
-        response_form = getattr(stub, "ResourceExchange")
-        response = response_form(request)
-        ARM_decision = []
-        for r in response.decision:
-            ARM_decision.append([r.microservice_name, r.scaling_action, r.desired_replicas, r.max_replicas, r.cpu_request])
+            request = request_form()
+            for i in range(len(request_list)):
+                request.data.append(request_list[i])
+            # get response
+            response_form = getattr(stub, "ResourceExchange")
+            response = response_form(request, timeout=5) # setting timeout
+            ARM_decision = []
+            #TODO: response filter to detect None values
+            for r in response.decision:
+                ARM_decision.append([r.microservice_name, r.scaling_action, r.desired_replicas, r.max_replicas, r.cpu_request])
 
-        return ARM_decision
-    except Exception as e:
-        print("Error happened during resource exchange")
-        print(e)
-        return None
+            return ARM_decision
+        except Exception as e:
+            print("Error happened during resource exchange")
+            print(e)
+            current_retry += 1
+            if current_retry >= max_retry:
+                print("Cannot get ARM decision from Adaptive Resource Manager.")
+                return None
+            else:
+                print("Retrying to get ARM decision. ")
 
 
 
@@ -159,6 +238,7 @@ def Execute(microservice_name, desired_replicas):
     os.system(execute_command)
     return
 
+
 def connect_all(microservice_list):
     connection_list = []
     executor = futures.ThreadPoolExecutor(max_workers=len(microservice_list))
@@ -166,6 +246,8 @@ def connect_all(microservice_list):
     for name in microservice_list:
         future_list.append(executor.submit(connect_to_microservice_manager, name))
     for fut in futures.as_completed(future_list):
+        if None in fut.result():
+            continue
         connection_list.append(fut.result())
     executor.shutdown()
     return connection_list
@@ -177,9 +259,41 @@ def get_all(connection_list):
     for connection in connection_list:
         future_list.append(executor.submit(get_microservice_data, connection[0], connection[2]))
     for fut in futures.as_completed(future_list):
+        if None in fut.result():
+            continue
         microservice_data.append(fut.result())
     executor.shutdown()
     return microservice_data
+
+def remove_from_connection(microservice_name):
+    global connection_list
+
+    new_connection_list = []
+    for i in range(len(connection_list)):
+        if connection_list[i][0] != microservice_name:
+            new_connection_list.append(connection_list[i])
+        else:
+            connection_list[i][1].close()
+    connection_list = new_connection_list
+    return
+
+def maintain_connection_list(connection_list, microservice_list):
+    unavailable_list = []
+    new_connection_list = connection_list
+    for microservice in microservice_list:
+        appear = False
+        for connection in connection_list:
+            if connection[0] == microservice:
+                appear = True
+                break
+        if appear == False:
+            unavailable_list.append(microservice)
+
+    for microservice in unavailable_list:
+        new_connection = connect_to_microservice_manager(microservice)
+        if None not in new_connection:
+            new_connection_list.append(new_connection)
+    return new_connection_list
 
 
 
@@ -192,9 +306,9 @@ def run(desired_time, microservice_list):
     start_time = time.time()
 
 
-    connection_list = connect_all(microservice_list)
-
-    adaptive_stub, adaptive_channel = connect_to_adaptive_resource_manager()
+    global connection_list
+    global adaptive_stub
+    global adaptive_channel
 
     while (time.time() - start_time) < desired_time:
 
@@ -203,12 +317,43 @@ def run(desired_time, microservice_list):
         # ********************************************************************** Running Microservice Managers Parallely in fully Decentralized manner ************************************************************************
 
         microservices_data = get_all(connection_list)
+        available_microservices_data = []
         unavailable_microservices_data = []
-        for i in microservices_data:
+        for data in microservices_data:
+            # microservice not available
+            if None in data:
+                unavailable_microservices_data.append(data)
+            else:
+                available_microservices_data.append(data)
+        available_microservice_name = []
+        unavailable_microservice_name = []
+        for data in available_microservices_data:
+            available_microservice_name.append(data[0])
+        for data in unavailable_microservices_data:
+            unavailable_microservice_name.append(data[0])
+        for microservice in microservice_list:
+            # resolve naming, rediscart is used for connecting to the manager, but the actual name of the microservice is redis-cart
+            if microservice == "rediscart":
+                microservice = "redis-cart"
+            # microservice manager not available, have been removed from connection list
+            # need to write data for them as well to maintain the valid row_number
+            if microservice not in available_microservice_name and microservice not in unavailable_microservice_name:
+                unavailable_microservices_data.append([microservice, None, None, None, None, None, None])
+
+        print(available_microservices_data)
+        print(unavailable_microservices_data)
+
+        for i in available_microservices_data:
             print(i)
             microservice_name, cpu_percentage, current_replicas, desired_replicas = i[0], i[6], i[3], i[2]
             write_content(f"./Knowledge_Base/{microservice_name}.txt", Test_Time, cpu_percentage, current_replicas, desired_replicas)
 
+        # write to maintain value of row number across microservices
+        for i in unavailable_microservices_data:
+            microservice_name = i[0]
+            write_content(f"./Knowledge_Base/{microservice_name}.txt", Test_Time, None, None, None)
+
+        microservices_data = available_microservices_data
 
         ARM_decision = []                 # ARM = Adaptive Resource Manager, ARM current scaling decision and maxR details will be saved here
 
@@ -300,6 +445,7 @@ def run(desired_time, microservice_list):
 
         row_number = row_number+1
 
+        connection_list = maintain_connection_list(connection_list, microservice_list)
 
         print ("ARM_decision", ARM_decision)
 
@@ -325,4 +471,8 @@ if __name__ == '__main__':
     health_port = "8080"
     health_server = threading.Thread(target=serve_health, args=[health_port, ])
     health_server.start()
+
+    connection_list = connect_all(microservice_list)
+    adaptive_stub, adaptive_channel = connect_to_adaptive_resource_manager()
+
     run(600, microservice_list)
