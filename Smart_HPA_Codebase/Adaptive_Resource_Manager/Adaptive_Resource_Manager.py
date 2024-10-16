@@ -115,19 +115,24 @@ def Adaptive_Resource_Manager(microservices_data):
     for i in range(len(Underprovisoned_MS)):
         possible_RR = Total_Residual_CPU / Underprovisoned_MS[i][3]                            #Total application's residual CPU divided by CPU request value for creating possible replicas for microservice i
 
+        # can scale up to meet the resource command
         if possible_RR >= Underprovisoned_MS[i][1]:                   #possible replicas >= required replicas
             scaling_action = "scale up"
+            # new_max_reps = desired_reps
             Feasible_Replicas = ARM_maxR = Underprovisoned_MS[i][1] + Underprovisoned_MS[i][5]           # required replicas + max replicas = desired replicas
             ARM_decision.append([Underprovisoned_MS[i][0], scaling_action, Feasible_Replicas, ARM_maxR, Underprovisoned_MS[i][3]])
             Total_Residual_CPU = Total_Residual_CPU - (Underprovisoned_MS[i][1] * Underprovisoned_MS[i][3])
 
+        # can scale up but not 100% meet the resource command
         elif possible_RR >=  1 and possible_RR < Underprovisoned_MS[i][1]:     #if possible replicas are in between 1 and required replicas
             scaling_action = "scale up"
             Feasible_Replicas = ARM_maxR = math.floor (possible_RR) + Underprovisoned_MS[i][5]        # max replicas + possible RR
             ARM_decision.append([Underprovisoned_MS[i][0], scaling_action, Feasible_Replicas, ARM_maxR, Underprovisoned_MS[i][3]])
             Total_Residual_CPU = Total_Residual_CPU - (math.floor(possible_RR) * Underprovisoned_MS[i][3])
 
+        # not enough residual cpu to scale up
         else:
+            #
             if Underprovisoned_MS[i][4] < Underprovisoned_MS[i][5]:
                 scaling_action = "scale up"
                 Feasible_Replicas = possible_RR = Underprovisoned_MS[i][5]              #feasible replicas = max replicas
@@ -154,10 +159,14 @@ def Adaptive_Resource_Manager(microservices_data):
         Remaining_replicas = math.floor(Total_Residual_CPU / Overprovisioned_MS[i][5])        # Total_Residual_CPU divided by resource request value
         possible_RR = Desired_Replicas + Remaining_replicas
 
+        # residual cpu can maintain user-defined max_reps
         if (possible_RR >= Overprovisioned_MS[i][6]):                                          # Overprovisioned_MS[i][6] = initial maxR (resource capacity) of microservice i
             ARM_maxR = Overprovisioned_MS[i][6]                                               # ARM_maxR is the updated capacity of the microservice i
+        # can give back at least 1 more replicas but < user-defined max_reps
+        # elif Remaining_replicas >= 1 and possible_RR < Overprovisioned_MS[i][6]
         elif Remaining_replicas >= 1 and ARM_maxR < Overprovisioned_MS[i][6]:
             ARM_maxR = possible_RR
+        # no more residual cpu to give back, Desired_Replicas = max_reps
         else:
             ARM_maxR = Desired_Replicas
 
@@ -171,8 +180,10 @@ def Adaptive_Resource_Manager(microservices_data):
 if __name__ == '__main__':
     server_port = "50052"
     health_server_port = "8080"
+    # start server
     server_thread = threading.Thread(target=serve, args=[server_port, ])
     server_thread.start()
+    # start heartbeat server
     health_server_thread = threading.Thread(target=serve_health, args=[health_server_port, ])
     health_server_thread.start()
     server_thread.join()

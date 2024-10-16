@@ -40,7 +40,7 @@ def command_error_check(command):
             command_output = subprocess.check_output(command.split(), stderr=subprocess.STDOUT, timeout=5).decode('utf-8')
             # handle case when kubectl top pods doesn't raise an error even if the microservice cannot be found
 
-            # received "No resources found in default namespace."
+            # received "No resources found in default namespace." from top pod command
             if isinstance(command_output, str) == True and command_output == kubectl_top_pod_error:
                 print(f"Command '{command}' failed, microservice resources cannot be found, retrying...")
                 command_output = None

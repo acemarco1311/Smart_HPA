@@ -31,8 +31,10 @@ def Monitor():
     if Replicas_CPU_usage is not None:
         Operational_Replicas = len(Replicas_CPU_usage.splitlines()) - 1
 
+    # the current number of running pods in the deployment
     current_replicas = Available_Replicas
 
+    # the total CPU usage used by all current replicas in the deployment
     cpu_add = []
     if Replicas_CPU_usage is not None:
         for line in Replicas_CPU_usage.splitlines()[1:]:
@@ -44,25 +46,31 @@ def Monitor():
         cpu_add = None
 
 
+    # the current cpu usage of each replica in the deployment
     current_cpu = None
     if cpu_add is not None:
         current_cpu = math.ceil(statistics.mean(cpu_add))
 
 
+
+
+    # the desired replicas of this deployment defined in deployment configuration
+    # this is the minimum number of replicas that the deployment should maintain
+    # if this deployment is manually scaled by `kubectl scale` then this desired_replicas
+    # will be set to the new number of replicas scaled.
     Desired_Replicas = "kubectl get deployment adservice -o=jsonpath='{.spec.replicas}'"
     Desired_Replicas = subroutine.command_error_check(Desired_Replicas)
     if Desired_Replicas is not None:
         Desired_Replicas = int(Desired_Replicas.strip("'"))
 
 
+    # the requested cpu guaranteed for each replica in the deployment
     cpu_request = "kubectl get deployment adservice -o=jsonpath='{.spec.template.spec.containers[0].resources.requests.cpu}'"
     cpu_request = subroutine.command_error_check(cpu_request)
     if cpu_request is not None:
         cpu_request = cpu_request[:-2]
         cpu_request = int(cpu_request.strip("'"))
 
-
-    target_cpu = 50 # user defined cpu limit, cannot get from .yaml file as pod needs to exceed limit resource for triggering scaling
     max_replica = 5 # user defined max replicas, not being handled by smarthpa yet
     min_replica = 1 # default
 
@@ -71,6 +79,7 @@ def Monitor():
 
 def Analyse (Desired_Replicas, current_replicas, current_cpu, target_cpu, cpu_request, min_replica):
     try:
+        # current cpu utilization, how much it use based on cpu request, in percent
         cpu_percentage = (current_cpu / cpu_request) * 100
         previous_desired_replicas = Desired_Replicas
         desired_replica = math.ceil(int(current_replicas) * (int(cpu_percentage) / int(target_cpu)))

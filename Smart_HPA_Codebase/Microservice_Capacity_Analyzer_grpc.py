@@ -37,13 +37,17 @@ def get_service_endpoint(microservice_name):
     service_cluster_ip = "kubectl get service "
     service_cluster_ip += service_name
     service_cluster_ip += " -o=jsonpath='{.spec.clusterIP}'"
-    # retry inculded in subroutine.command_error_check()
+    # retry included in subroutine.command_error_check()
     service_cluster_ip = subroutine.command_error_check(service_cluster_ip)
-    if service_cluster_ip is not None:
-        service_cluster_ip = service_cluster_ip.strip("'")
-        service_endpoint = service_cluster_ip + ":" + default_port
-    else:
-        print("Cannot get service endpoint for microservice ", microservice_name)
+    try:
+        if service_cluster_ip is not None:
+            service_cluster_ip = service_cluster_ip.strip("'")
+            service_endpoint = service_cluster_ip + ":" + default_port
+        else:
+            print("Cannot get service endpoint for microservice ", microservice_name)
+    except Exception as e:
+        print("Error happened in constructing service endpoint")
+        return None
     return service_endpoint
 
 # connect to a microservice manager using the microservice's name
@@ -91,8 +95,7 @@ def connect_to_adaptive_resource_manager():
     while current_retry < max_retry:
         service_endpoint = get_service_endpoint("adaptiveresource")
         if service_endpoint is None:
-            current_retry += 1
-            continue
+            raise Exception("Cannot resolve service endpoint for Adaptive Resource Manager.")
         proto_module_name = "Adaptive_Resource_Manager.adaptive_resource_manager_pb2_grpc"
         service_stub_name = "AdaptiveResourceManagerStub"
         try:
@@ -157,6 +160,7 @@ def get_microservice_data(microservice_name, stub):
             request = request_form()
             # get response
             response_form = getattr(stub, "ExtractMicroserviceData")
+            # response= stub.ExtractMicroserviceData(request)
             response = response_form(request, timeout=5) # set timeout on gRPC function call
             microservice_data = filter_microservice_data(response)
             if None in microservice_data:
@@ -170,6 +174,8 @@ def get_microservice_data(microservice_name, stub):
                 print("Retrying")
         except grpc.RpcError as re:
             if re.code() == grpc.StatusCode.UNAVAILABLE:
+                # if the microservice Manager is down, skip this microservice for this exchange round by removing connection
+                # the connection will be retry before the next round
                 print(f"Microservice Manager {microservice_name} is unavailable during data retrieval. ")
                 remove_from_connection(microservice_name)
                 return [microservice_name, None, None, None, None, None, None]
@@ -180,12 +186,14 @@ def get_microservice_data(microservice_name, stub):
             current_retry += 1
             if current_retry >= max_retry:
                 print("Cannot get data from ", microservice_name)
-                return microservice_data
+                return [microservice_name, None, None, None, None, None, None]
             else:
                 print("Retrying to get data from ", microservice_name)
 
 
-def get_resource_exchange(stub, microservice_data):
+def get_resource_exchange(microservice_data):
+    global adaptive_stub
+    global adaptive_channel
     proto_module_name = "Adaptive_Resource_Manager.adaptive_resource_manager_pb2"
     current_retry = 0
     max_retry = 3
@@ -213,14 +221,29 @@ def get_resource_exchange(stub, microservice_data):
             for i in range(len(request_list)):
                 request.data.append(request_list[i])
             # get response
-            response_form = getattr(stub, "ResourceExchange")
+            response_form = getattr(adaptive_stub, "ResourceExchange")
             response = response_form(request, timeout=5) # setting timeout
             ARM_decision = []
-            #TODO: response filter to detect None values
+
+            # filter values representing None from server
+            # this error occurs when the microservice itself is not available
             for r in response.decision:
                 ARM_decision.append([r.microservice_name, r.scaling_action, r.desired_replicas, r.max_replicas, r.cpu_request])
 
             return ARM_decision
+
+        except grpc.RpcError as re:
+            if re.code() == grpc.StatusCode.UNAVAILABLE:
+                # if pod of Adaptive Resource Manager is unavailable then try to reconnect
+                print("Adaptive Resource Manager is not available for resource exchange")
+                current_retry += 1
+                if current_retry >= max_retry:
+                    print("Cannot get ARM from Adaptive Resource Manager because it's not available")
+                    return None
+                print("Retrying to reconnect and retry...")
+                adaptive_channel.close()
+                adaptive_stub, adaptive_channel = connect_to_adaptive_resource_manager()
+
         except Exception as e:
             print("Error happened during resource exchange")
             print(e)
@@ -254,6 +277,9 @@ def connect_all(microservice_list):
 
 def get_all(connection_list):
     microservice_data = []
+    if len(connection_list) == 0:
+        print("No connection made, cannot get microservice data.")
+        return microservice_data
     executor = futures.ThreadPoolExecutor(max_workers=len(connection_list))
     future_list = []
     for connection in connection_list:
@@ -316,7 +342,16 @@ def run(desired_time, microservice_list):
 
         # ********************************************************************** Running Microservice Managers Parallely in fully Decentralized manner ************************************************************************
 
+        # establish connection with microservice manager and retrieve all microservice resource data
         microservices_data = get_all(connection_list)
+
+        # keep trying to connect if no connection established
+        if len(microservices_data) == 0:
+            connection_list = maintain_connection_list(connection_list, microservice_list)
+            continue
+
+
+        # separate available and unavailable data
         available_microservices_data = []
         unavailable_microservices_data = []
         for data in microservices_data:
@@ -340,19 +375,11 @@ def run(desired_time, microservice_list):
             if microservice not in available_microservice_name and microservice not in unavailable_microservice_name:
                 unavailable_microservices_data.append([microservice, None, None, None, None, None, None])
 
-        print(available_microservices_data)
-        print(unavailable_microservices_data)
+        print("Available microservice data: ", available_microservices_data)
+        print("Unavailable microservice data: ", unavailable_microservices_data)
 
-        for i in available_microservices_data:
-            print(i)
-            microservice_name, cpu_percentage, current_replicas, desired_replicas = i[0], i[6], i[3], i[2]
-            write_content(f"./Knowledge_Base/{microservice_name}.txt", Test_Time, cpu_percentage, current_replicas, desired_replicas)
 
-        # write to maintain value of row number across microservices
-        for i in unavailable_microservices_data:
-            microservice_name = i[0]
-            write_content(f"./Knowledge_Base/{microservice_name}.txt", Test_Time, None, None, None)
-
+        # Smart HPA continue with available microservices only
         microservices_data = available_microservices_data
 
         ARM_decision = []                 # ARM = Adaptive Resource Manager, ARM current scaling decision and maxR details will be saved here
@@ -369,11 +396,28 @@ def run(desired_time, microservice_list):
                             microservices_data[i][5] = ARM_saved_decision[j][3]          # Changing SLA-defined maxR to the ResourceWise maxR of previous ARM decision for each microservice
 
                 # ARM_decision = Adaptive_Resource_Manager(microservices_data)                     # Calling Adaptive Resource Manager
-                ARM_decision = get_resource_exchange(adaptive_stub, microservices_data)
+                ARM_decision = get_resource_exchange(microservices_data)
+
+                if ARM_decision is None:
+                    break
 
                 ARM_saved_decision = ARM_decision
 
                 break
+
+        if ARM_decision is None:
+            continue
+
+
+        # write to data only when ARM_decision can be made, avoid writing then Adaptive Resource Manager gets unavailable
+        for i in available_microservices_data:
+            microservice_name, cpu_percentage, current_replicas, desired_replicas = i[0], i[6], i[3], i[2]
+            write_content(f"./Knowledge_Base/{microservice_name}.txt", Test_Time, cpu_percentage, current_replicas, desired_replicas)
+
+        # write to maintain value of row number across microservices
+        for i in unavailable_microservices_data:
+            microservice_name = i[0]
+            write_content(f"./Knowledge_Base/{microservice_name}.txt", Test_Time, None, None, None)
 
         #When all microservices operate within their resource capacity (i.e., resource-rich environment) -> desirsed replica count < max. replica count
 
@@ -410,8 +454,6 @@ def run(desired_time, microservice_list):
                 max_reps = unavailable_microservices_data[i][5]
                 scaling_decision = unavailable_microservices_data[i][1]
                 add_content(filepath, row_number, max_reps, scaling_decision)
-
-
 
 
         # for Resource Constrained Situation, when Adaptive Resource Manager makes changes to max_Replicas and desired replicas
@@ -476,3 +518,4 @@ if __name__ == '__main__':
     adaptive_stub, adaptive_channel = connect_to_adaptive_resource_manager()
 
     run(600, microservice_list)
+    health_server.join()

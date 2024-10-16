@@ -258,7 +258,7 @@ spec:
             value: "cartservice:7070"
           resources:
             requests:
-              cpu: 7m
+              cpu: 10m
               memory: 100Mi
 ---
 apiVersion: v1
@@ -798,7 +798,7 @@ spec:
         resources:
           requests:
             memory: 125Mi
-            cpu: 10m
+            cpu: 30m 
       volumes:
       - name: redis-data
         emptyDir: {}
