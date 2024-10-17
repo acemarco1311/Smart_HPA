@@ -22,6 +22,26 @@ def add_content(filename, row_number, max_reps, scaling_action):
     with open(filename, 'w') as file:
         file.writelines(data)
 
+def write_to_KB(microservice_resource_data):
+    for microservice in microservice_resource_data:
+        microservice_name = microservice[0]
+        cpu_usage = microservice[6]
+        current_reps = microservice[3]
+        desired_reps = microservice[2] # number of replicas that requested by the microservice
+        max_reps = microservice[5] # user-defined max_reps or Adaptive updated_max_reps
+        scaling_action = microservice[1] # the scaling action allowed by Adaptive
+        cpu_request = microservice[4]
+        feasible_replicas = microservice[7] # the new current reps allowed by Adaptive
+
+        content = str(cpu_request) + ", " + str(cpu_usage) + ", " + str(current_reps) + ", " + str(desired_reps) + ", " + str(feasible_replicas) + ", " + str(max_reps) + ", " + str(scaling_action) + '\n'
+
+        filename = microservice_name
+        filepath = f"./Knowledge_Base/{filename}.txt"
+        file.write(content)
+        file.close()
+    return
+
+
 # 1: handle errors from kubectl server error using subprocess.CalledProcessError
 # 2: handle timeout either as kubectl server error (putting --request-timeout, having problem if deployed localling)
 # or set timeout on subprocess.check_output() and handle subprocess.TimeoutError

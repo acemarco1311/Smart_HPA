@@ -360,6 +360,8 @@ def run(desired_time, microservice_list):
                 unavailable_microservices_data.append(data)
             else:
                 available_microservices_data.append(data)
+
+
         available_microservice_name = []
         unavailable_microservice_name = []
         for data in available_microservices_data:
@@ -381,6 +383,8 @@ def run(desired_time, microservice_list):
 
         # Smart HPA continue with available microservices only
         microservices_data = available_microservices_data
+        # Data will be written to KB
+        KB_data = available_microservices_data
 
         ARM_decision = []                 # ARM = Adaptive Resource Manager, ARM current scaling decision and maxR details will be saved here
 
@@ -393,6 +397,8 @@ def run(desired_time, microservice_list):
                 for i in range(len(microservices_data)):
                     for j in range(len(ARM_saved_decision)):
                         if microservices_data[i][0] == ARM_saved_decision[j][0]:
+                            # change user-defined max_reps by Adaptive updated_max_reps from the last round
+                            # to exchange resource based on history instead of starting over from the start
                             microservices_data[i][5] = ARM_saved_decision[j][3]          # Changing SLA-defined maxR to the ResourceWise maxR of previous ARM decision for each microservice
 
                 # ARM_decision = Adaptive_Resource_Manager(microservices_data)                     # Calling Adaptive Resource Manager
@@ -401,6 +407,7 @@ def run(desired_time, microservice_list):
                 if ARM_decision is None:
                     break
 
+                # save ARM decision for using updated_max_reps next round
                 ARM_saved_decision = ARM_decision
 
                 break
@@ -409,34 +416,24 @@ def run(desired_time, microservice_list):
             continue
 
 
-        # write to data only when ARM_decision can be made, avoid writing then Adaptive Resource Manager gets unavailable
-        for i in available_microservices_data:
-            microservice_name, cpu_percentage, current_replicas, desired_replicas = i[0], i[6], i[3], i[2]
-            write_content(f"./Knowledge_Base/{microservice_name}.txt", Test_Time, cpu_percentage, current_replicas, desired_replicas)
-
-        # write to maintain value of row number across microservices
-        for i in unavailable_microservices_data:
-            microservice_name = i[0]
-            write_content(f"./Knowledge_Base/{microservice_name}.txt", Test_Time, None, None, None)
-
         #When all microservices operate within their resource capacity (i.e., resource-rich environment) -> desirsed replica count < max. replica count
 
         processes = []
         if len(ARM_decision) == 0:
 
+            # Adaptive Resource Manager didn't make any changes
             ARM_saved_decision = microservices_data                          #to equalize the length
             for i in range(len(microservices_data)):
                 for j in range(len(ARM_saved_decision)):
                     if microservices_data[i][0] == ARM_saved_decision[j][0]:
+                        # so microservice name, scaling action is the same for microservice data
+                        # feasible_replicas = desired_replica
+                        # now change updated_max_reps = user-defined max_reps
                         ARM_saved_decision[j][3] = microservices_data[i][5]
 
-
-            for i in range(len(microservices_data)):
-                filename = microservices_data[i][0]
-                filepath = f'./Knowledge_Base/{filename}.txt'
-                max_reps = microservices_data[i][5]
-                scaling_decision = microservices_data[i][1]
-                add_content(filepath, row_number, max_reps, scaling_decision)
+            # if no decision was made, feasible_reps = desired_reps (resource-rich env)
+            for i in range(len(KB_data)):
+                KB_data[i].append(KB_data[i][2])
 
                 # ************************************************** Executing Scaling Decisions made by Microservice Managers **********************************************************************
 
@@ -447,24 +444,30 @@ def run(desired_time, microservice_list):
             for process in processes:            # Wait for all processes to finish
                 process.join()
 
-            # write to unavailable data as well
-            for i in range(len(unavailable_microservices_data)):
-                filename = unavailable_microservices_data[i][0]
-                filepath = f'./Knowledge_Base/{filename}.txt'
-                max_reps = unavailable_microservices_data[i][5]
-                scaling_decision = unavailable_microservices_data[i][1]
-                add_content(filepath, row_number, max_reps, scaling_decision)
-
 
         # for Resource Constrained Situation, when Adaptive Resource Manager makes changes to max_Replicas and desired replicas
 
         else:
+            # change user-defined max_reps in KB -> updated_max_reps by the Adaptive Resource Manager
+            # change desired_replicas -> feasible_reps by the Adaptive Resource Manager
             for i in range(len(ARM_decision)):
                 filename = ARM_decision[i][0]
-                filepath = f'./Knowledge_Base/{filename}.txt'
+                # updated_desired_reps = feasible_reps from Adaptive
+                feasible_reps = ARM_decision[i][2]
+                # user-defined max_reps = updated_max_reps from Adaptive
                 updated_max_reps = ARM_decision[i][3]
+                # scaling decision = allowed scaling decision from Adaptive
                 updated_scaling_decision = ARM_decision[i][1]
-                add_content(filepath, row_number, updated_max_reps, updated_scaling_decision)
+
+                for j in range(len(KB_data)):
+                    if KB_data[j][0] == filename:
+                        # change scaling action
+                        KB_data[j][1] = updated_scaling_decision
+                        # change user-defined max_reps = updated_max_reps
+                        KB_data[j][5] = updated_max_reps
+                        # add feasible_reps
+                        KB_data[j].append(feasible_reps)
+
 
 
 
@@ -477,14 +480,8 @@ def run(desired_time, microservice_list):
             for process in processes:            # Wait for all processes to finish
                 process.join()
 
-            # write for unavailable microservices
-            for i in range(len(unavailable_microservices_data)):
-                filename = unavailable_microservices_data[i][0]
-                filepath = f'./Knowledge_Base/{filename}.txt'
-                max_reps = unavailable_microservices_data[i][5]
-                scaling_action = unavailable_microservices_data[i][1]
-                add_content(filepath, row_number, max_reps, scaling_action)
 
+        write_to_KB(KB_data)
         row_number = row_number+1
 
         connection_list = maintain_connection_list(connection_list, microservice_list)
