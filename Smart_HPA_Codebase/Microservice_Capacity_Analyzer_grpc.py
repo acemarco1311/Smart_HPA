@@ -15,6 +15,7 @@ from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
 
 import threading
+import copy
 
 
 def serve_health(port):
@@ -161,22 +162,23 @@ def get_microservice_data(microservice_name, stub):
             # get response
             response_form = getattr(stub, "ExtractMicroserviceData")
             # response= stub.ExtractMicroserviceData(request)
-            response = response_form(request, timeout=5) # set timeout on gRPC function call
+            # timeout included needed timeout of Microservice Manager
+            response = response_form(request, timeout=25)
             microservice_data = filter_microservice_data(response)
             if None in microservice_data:
                 raise ValueError("Invalid response from microservice manager server ", microservice_name)
             return microservice_data
+        # Microservice Manager exceeded its retries to microservice, no retry needed here
         except ValueError as ve:
-            current_retry += 1
-            if current_retry >= max_retry:
-                return microservice_data
-            else:
-                print("Retrying")
+            print("Invalid response from Microservice Manager Server, the microservice might not be available.")
+            return [microservice_name, None, None, None, None, None, None]
+        # Microservice Manager crashed, maybe retry needed
         except grpc.RpcError as re:
             if re.code() == grpc.StatusCode.UNAVAILABLE:
                 # if the microservice Manager is down, skip this microservice for this exchange round by removing connection
                 # the connection will be retry before the next round
                 print(f"Microservice Manager {microservice_name} is unavailable during data retrieval. ")
+                # now try to reconnect to Microservice Manager
                 remove_from_connection(microservice_name)
                 return [microservice_name, None, None, None, None, None, None]
 
@@ -382,9 +384,11 @@ def run(desired_time, microservice_list):
 
 
         # Smart HPA continue with available microservices only
-        microservices_data = available_microservices_data
+        microservices_data = copy.deepcopy(available_microservices_data)
+        #microservices_data = available_microservices_data
         # Data will be written to KB
-        KB_data = available_microservices_data
+
+        KB_data = copy.deepcopy(available_microservices_data)
 
         ARM_decision = []                 # ARM = Adaptive Resource Manager, ARM current scaling decision and maxR details will be saved here
 
@@ -422,7 +426,8 @@ def run(desired_time, microservice_list):
         if len(ARM_decision) == 0:
 
             # Adaptive Resource Manager didn't make any changes
-            ARM_saved_decision = microservices_data                          #to equalize the length
+            #ARM_saved_decision = microservices_data                          #to equalize the length
+            ARM_saved_decision = copy.deepcopy(microservices_data)
             for i in range(len(microservices_data)):
                 for j in range(len(ARM_saved_decision)):
                     if microservices_data[i][0] == ARM_saved_decision[j][0]:

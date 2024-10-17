@@ -37,8 +37,16 @@ def write_to_KB(microservice_resource_data):
 
         filename = microservice_name
         filepath = f"./Knowledge_Base/{filename}.txt"
-        file.write(content)
-        file.close()
+        try:
+            file = open(filepath, 'a')
+            file.write(content)
+            file.close()
+        except FileNotFoundError:
+            file = open(filepath, 'x')
+            file.close()
+            file = open(filepath, 'a')
+            file.write(content)
+            file.close()
     return
 
 
